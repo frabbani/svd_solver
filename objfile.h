@@ -7,7 +7,7 @@ typedef struct {
   union {
     float3 p;
     struct {
-      double x, y, z;
+      float x, y, z;
     };
   };
 } obj_v_t;
