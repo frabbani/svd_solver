@@ -80,7 +80,7 @@ int obj_load(obj_t* obj, const char objfile[], int term) {
     }
     if ('v' == line[0] && ' ' == line[1]) {
       obj_v_t* v = &obj->vs[obj->num_vs++];
-      sscanf(&line[2], "%lf %lf %lf", &v->x, &v->y, &v->z);
+      sscanf(&line[2], "%f %f %f", &v->x, &v->y, &v->z);
     }
   }
   fclose(fp);
