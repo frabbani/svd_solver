@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "defs.h"
-#include "vec.h"
-
 void obj_term(obj_t* obj) {
   if (obj->vs)
     free(obj->vs);
@@ -94,16 +91,16 @@ int obj_load(obj_t* obj, const char objfile[], int term) {
     f->vs[1] = obj->vs[f->i1];
     f->vs[2] = obj->vs[f->i2];
 
-    dvec3 u, v;
-    dvec3_make(u, f->vs[0].p, f->vs[1].p);
-    dvec3_make(v, f->vs[0].p, f->vs[2].p);
-    dvec3_cross(u, v, f->n);
-    f->area = 0.5 * dvec3_norm(f->n);
-    dvec3_copy(f->c, f->vs[0].p);
-    dvec3_add(f->c, f->vs[1].p);
-    dvec3_add(f->c, f->vs[2].p);
-    dvec3_muls(f->c, 1.0 / 3.0);
-    dvec3_norm(f->c);
+    float3 u, v;
+    f3make(u, f->vs[0].p, f->vs[1].p);
+    f3make(v, f->vs[0].p, f->vs[2].p);
+    f3cross(u, v, f->n);
+    f->area = 0.5f * f3norm(f->n);
+    f3copy(f->c, f->vs[0].p);
+    f3add(f->c, f->vs[1].p);
+    f3add(f->c, f->vs[2].p);
+    f3muls(f->c, 1.0f / 3.0f);
+    f3norm(f->c);
   }
 
   return 1;
@@ -135,11 +132,11 @@ int obj_write(const obj_t* obj, const char objfile[]) {
 
     // skip degenerate
     int num_zeros = 0;
-    if (0.0 == dvec3_lensq(obj->vs[f->i0].p))
+    if (0.0f == f3lensq(obj->vs[f->i0].p))
       num_zeros++;
-    if (0.0 == dvec3_lensq(obj->vs[f->i1].p))
+    if (0.0f == f3lensq(obj->vs[f->i1].p))
       num_zeros++;
-    if (0.0 == dvec3_lensq(obj->vs[f->i1].p))
+    if (0.0f == f3lensq(obj->vs[f->i2].p))
       num_zeros++;
     if (num_zeros >= 2)
       continue;

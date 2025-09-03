@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2
 
-SRC = main.c vec.c objfile.c vec3.c
+SRC = main.c vec.c objfile.c floatn.c
 OBJ = $(SRC:.c=.o)
-DEPS = vec.h objfile.h vec3.h
+DEPS = vec.h objfile.h floatn.h
 
 TARGET = svd_solver
 
