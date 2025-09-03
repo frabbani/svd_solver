@@ -9,3 +9,12 @@
     else if ((a) > (max))  \
       (a) = (max);         \
   }
+
+
+#define SWAP(a, b) \
+  {                \
+    typeof(a) temp = (a); \
+    (a) = (b);      \
+    (b) = temp;    \
+  }
+

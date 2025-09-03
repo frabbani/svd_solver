@@ -1,11 +1,11 @@
 #pragma once
 
 #include "defs.h"
-#include "vec.h"
+#include "vec3.h"
 
 typedef struct {
   union {
-    dvec3_t p;
+    dvec3 p;
     struct {
       double x, y, z;
     };
@@ -21,8 +21,8 @@ typedef struct {
   };
   obj_v_t vs[3];
   double area;
-  dvec3_t n;
-  dvec3_t c;
+  dvec3 n;
+  dvec3 c;
 } obj_f_t;
 
 typedef struct {

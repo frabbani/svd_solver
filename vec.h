@@ -1,14 +1,32 @@
 #pragma once
 
-typedef double dvec3_t[3];
-typedef dvec3_t dvec3;
 
-void dvec3_zero(dvec3 dv3);
-void dvec3_copy(dvec3 dv3, const dvec3 dv3u);
-void dvec3_make(dvec3 dv3, const dvec3 dv3u, const dvec3 dv3v);
-void dvec3_muls(dvec3 dv3, double s);
-void dvec3_add(dvec3 dv3, const dvec3 dv3u);
-float dvec3_dot(const dvec3 dv3u, const dvec3 dv3v);
-float dvec3_lensq(const dvec3 dv3);
-void dvec3_cross(const dvec3 dv3u, const dvec3 dv3v, dvec3 dv3n);
-float dvec3_norm(dvec3 dv3);
+typedef struct{
+    int n;
+    double *elems;
+} dvec_t;
+
+typedef struct{
+    int m, n;
+    double *elems;
+} dmat_t;
+
+int dvec_init(dvec_t *v, int n, double init_val);
+void dvec_zero(dvec_t *v);
+void dvec_muls(dvec_t *v, double s);
+void dvec_copy(dvec_t *dest, const dvec_t *src);
+void dvec_add(dvec_t *r, const dvec_t *u);
+void dvec_sub(dvec_t *r, const dvec_t *u);
+void dvec_make(dvec_t *r, const dvec_t *u, const dvec_t *v);
+double dvec_dot(const dvec_t *u, const dvec_t *v);
+double dvec_lensq(const dvec_t *v);
+double dvec_norm(dvec_t *v);
+void dvec_outer(const dvec_t *u, const dvec_t *v, dmat_t *m);
+void dvec_free(dvec_t* v);
+
+int dmat_init(dmat_t *mat, int m, int n, double init_val);
+void dmat_zero(dmat_t *mat);
+void dmat_muls(dmat_t *mat, double s);
+void dmat_add(dmat_t *mat, const dmat_t *other);
+void dmat_free(dmat_t *mat);
+
