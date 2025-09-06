@@ -58,3 +58,23 @@ float f3norm(float3 r) {
   return 0.0f;
 }
 
+void f3x3zero(float3x3 m) {
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j)
+      m[i][j] = 0.0f;
+}
+
+void f3x3ident(float3x3 m) {
+  f3x3zero(m);
+  for (int i = 0; i < 3; ++i)
+    m[i][i] = 1.0f;
+}
+
+void f3transf(const float3x3 m, const float3 v, float3 r) {
+  for (int i = 0; i < 3; ++i) {
+    r[i] = 0.0f;
+    for (int j = 0; j < 3; ++j)
+      r[i] += m[i][j] * v[j];
+  }
+}
+

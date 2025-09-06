@@ -1,4 +1,3 @@
-
 #include "vec.h"
 
 #include <math.h>
@@ -53,7 +52,7 @@ void dvec_sub(dvec_t* r, const dvec_t* u) {
   }
 }
 
-void dvec_make(dvec_t* r, const dvec_t* u, const dvec_t* v) {
+void dvec_point(dvec_t* r, const dvec_t* u, const dvec_t* v) {
   if (u->n != v->n)
     return;
   for (int i = 0; i < r->n; ++i) {
@@ -141,7 +140,7 @@ void dmat_add(dmat_t* mat, const dmat_t* other) {
   }
 }
 
-void dmat_free(dmat_t *mat) {
+void dmat_free(dmat_t* mat) {
   if (mat) {
     if (mat->elems)
       free(mat->elems);
@@ -149,4 +148,22 @@ void dmat_free(dmat_t *mat) {
     mat->m = 0;
     mat->n = 0;
   }
+}
+
+void dmat_transf(const dmat_t* mat, dvec_t* r) {
+  if (!mat || !r || mat->n != r->n)
+    return;
+  double* result = (double*)malloc(mat->m * sizeof(double));
+  if (!result)
+    return;
+  for (int i = 0; i < mat->m; ++i) {
+    result[i] = 0.0;
+    for (int j = 0; j < mat->n; ++j) {
+      result[i] += mat->elems[i * mat->n + j] * r->elems[j];
+    }
+  }
+  for (int i = 0; i < mat->m; ++i) {
+    r->elems[i] = result[i];
+  }
+  free(result);
 }

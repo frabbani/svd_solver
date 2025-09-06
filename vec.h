@@ -17,7 +17,7 @@ void dvec_muls(dvec_t *v, double s);
 void dvec_copy(dvec_t *dest, const dvec_t *src);
 void dvec_add(dvec_t *r, const dvec_t *u);
 void dvec_sub(dvec_t *r, const dvec_t *u);
-void dvec_make(dvec_t *r, const dvec_t *u, const dvec_t *v);
+void dvec_point(dvec_t *r, const dvec_t *u, const dvec_t *v);
 double dvec_dot(const dvec_t *u, const dvec_t *v);
 double dvec_lensq(const dvec_t *v);
 double dvec_norm(dvec_t *v);
@@ -29,4 +29,4 @@ void dmat_zero(dmat_t *mat);
 void dmat_muls(dmat_t *mat, double s);
 void dmat_add(dmat_t *mat, const dmat_t *other);
 void dmat_free(dmat_t *mat);
-
+void dmat_transf(const dmat_t* mat, dvec_t* r);
