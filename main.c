@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,23 @@ void compute_covariance(dmat_t* cov, const dvec_t* pts, size_t num_pts) {
   dmat_free(&outer);
   dvec_free(&mean);
 }
+
+/*
+SVD form:
+    M = U Σ Vᵗ
+
+    Shapes:
+      M: n×d  (n samples, d features)
+      U: n×n  (orthonormal basis in sample space)
+      Σ: n×d  (diagonal matrix of singular values σ = √λ)
+      V: d×d  (orthonormal basis in feature space)
+
+    V: eigenvectors (orthonormal basis, PCA directions) of Mᵗ M (feature space, d×d)
+    U: eigenvectors (orthonormal basis) of M Mᵗ (sample space, n×n)
+    Σ: diagonal matrix of singular values σ (σ = √λ, not λ directly)
+
+    Vᵗ appears because we are projecting data into the feature PCA basis (world → local).
+*/
 
 typedef struct {
   double lamda;
@@ -93,7 +111,8 @@ void compute_pca(const dmat_t* cov, dvec_t** axes) {
 }
 
 void compute_lambdas(const dvec_t* pts, size_t num_pts, const dvec_t* axes, double** lambdas) {
-  if (!pts || num_pts == 0 || !axes) return;
+  if (!pts || num_pts == 0 || !axes)
+    return;
 
   int n = pts[0].n;
   *lambdas = malloc(n * sizeof(double));
@@ -109,21 +128,69 @@ void compute_lambdas(const dvec_t* pts, size_t num_pts, const dvec_t* axes, doub
   }
   dvec_muls(&mean, 1.0 / num_pts);
 
-  for(int i = 0; i < n; i++){
-    double *lambda = &(*lambdas)[i];
+  for (int i = 0; i < n; i++) {
+    double* lambda = &(*lambdas)[i];
     *lambda = 0.0;
-    for(unsigned int j = 0; j < num_pts; j++){
-        dvec_point(&r, &mean, &pts[j]);
-        double dot = dvec_dot(&r, &axes[i]);
-        *lambda += (dot * dot);
+    for (unsigned int j = 0; j < num_pts; j++) {
+      dvec_point(&r, &mean, &pts[j]);
+      double dot = dvec_dot(&r, &axes[i]);
+      *lambda += (dot * dot);
     }
-    *lambda = *lambda/(double)num_pts;
+    *lambda = *lambda / (double)num_pts;
   }
 
   dvec_free(&mean);
-  dvec_free(&r);    
+  dvec_free(&r);
 }
 
+typedef struct {
+  dmat_t V;
+  dmat_t Vt;
+  dmat_t E;
+  dmat_t U;
+} svd_t;
+
+void compute_svd(const dvec_t* pts, size_t num_pts, svd_t* svd) {
+  dmat_t M = {0};
+  dmat_t Mt = {0};
+  dmat_t MtM = {0};
+  dmat_init(&M, num_pts, pts[0].n, 0.0);
+  for (int i = 0; i < num_pts; i++) {
+    for (int j = 0; j < M.n; j++) {
+      M.elems[i * M.n + j] = pts[i].elems[j];
+    }
+  }
+  dmat_transp(&M, &Mt);
+  dmat_mul(&Mt, &M, &MtM);
+
+  dvec_t* eig_axes = NULL;
+  compute_pca(&MtM, &eig_axes);
+
+  int num_axes = MtM.n;
+
+  // Rayleigh Quotient
+  // M^tM is  in canonical basis. Transform it to feature space
+  // compute its projected value along the feature space axes (eigen vectors)
+  // (M^T * M) * v_i ​= lambda_i * v_i
+  double* eig_lambdas = malloc(num_axes * sizeof(double));
+  for (int i = 0; i < num_axes; i++) {
+    eig_lambdas[i] = 0.0;
+    dvec_t* axis = &eig_axes[i];
+    dvec_t v_lambda = {0};
+    dvec_copy(&v_lambda, axis);
+    // transform eigen vectors by M^tM and find its projected value on eigen vectors (PCA axes)
+    dvec_transf(&MtM, &v_lambda);
+    eig_lambdas[i] += dvec_dot(axis, &v_lambda);
+  }
+
+  // d x d
+  for (int i = 0; i < num_axes; i++) dvec_free(&eig_axes[i]);
+  free(eig_axes);
+  free(eig_lambdas);
+  dmat_mul(&Mt, &M, &MtM);
+  dmat_free(&Mt);
+  dmat_free(&M);
+}
 
 /*
 int cmp(const void* a, const void* b) {
@@ -293,13 +360,16 @@ void pca_test() {
     printf("  <%8.4f, %8.4f, %8.4f>\n", axes[i].elems[0], axes[i].elems[1], axes[i].elems[2]);
   }
 
-  double *lambdas = NULL;
+  double* lambdas = NULL;
   compute_lambdas(pts, num_pts, axes, &lambdas);
   printf("EIGEN VALUES:\n");
   for (int i = 0; i < 3; i++) {
     printf("  %8.4f\n", lambdas[i]);
   }
-
+  printf("SINGULAR VALUES:\n");
+  for (int i = 0; i < 2; i++) {
+    printf("  %8.4f\n", sqrt(num_pts * lambdas[i]));
+  }
 
   float3 r, l, u;
   r[0] = axes[0].elems[0];
@@ -335,56 +405,60 @@ void pca_test() {
   obj_term(&shape);
 }
 
-void sanity_test(){
-    //(2,0), (0,1), (4,2), (3,1)
-    dvec_t pts[4];
-    for (int i = 0; i < 4; i++) {
-        dvec_init(&pts[i], 2, 0.0);
+void sanity_test() {
+  //(2,0), (0,1), (4,2), (3,1)
+  dvec_t pts[4];
+  for (int i = 0; i < 4; i++) {
+    dvec_init(&pts[i], 2, 0.0);
+  }
+  pts[0].elems[0] = 2;
+  pts[0].elems[1] = 0;
+
+  pts[1].elems[0] = 0;
+  pts[1].elems[1] = 1;
+
+  pts[2].elems[0] = 4;
+  pts[2].elems[1] = 2;
+
+  pts[3].elems[0] = 3;
+  pts[3].elems[1] = 1;
+
+  dmat_t cov = {0};
+  compute_covariance(&cov, pts, 4);
+  printf("COV MAT:\n");
+  for (int i = 0; i < cov.m; i++) {
+    printf("|");
+    for (int j = 0; j < cov.n; j++) {
+      printf(" %8.4f", cov.elems[i * cov.n + j]);
     }
-    pts[0].elems[0] = 2;
-    pts[0].elems[1] = 0;
+    printf(" |\n");
+  }
 
-    pts[1].elems[0] = 0;
-    pts[1].elems[1] = 1;
+  dvec_t* axes;
+  compute_pca(&cov, &axes);
+  printf("PCA AXES:\n");
+  printf("  <%8.4f, %8.4f>\n", axes[0].elems[0], axes[0].elems[1]);
+  printf("  <%8.4f, %8.4f>\n", axes[1].elems[0], axes[1].elems[1]);
 
-    pts[2].elems[0] = 4;
-    pts[2].elems[1] = 2;
+  double* lambdas = NULL;
+  compute_lambdas(pts, 4, axes, &lambdas);
+  printf("EIGEN VALUES:\n");
+  for (int i = 0; i < 2; i++) {
+    printf("  %8.4f\n", lambdas[i]);
+  }
+  printf("SINGULAR VALUES:\n");
+  for (int i = 0; i < 2; i++) {
+    printf("  %8.4f\n", sqrt(4 * lambdas[i]));
+  }
 
-    pts[3].elems[0] = 3;
-    pts[3].elems[1] = 1;
-
-    dmat_t cov = {0};
-    compute_covariance(&cov, pts, 4);
-    printf("COV MAT:\n");
-    for (int i = 0; i < cov.m; i++) {
-        printf("|");
-        for (int j = 0; j < cov.n; j++) {
-            printf(" %8.4f", cov.elems[i * cov.n + j]);
-        }
-        printf(" |\n");
-    }
-
-    dvec_t *axes;
-    compute_pca(&cov, &axes);
-    printf("PCA AXES:\n");
-    printf("  <%8.4f, %8.4f>\n", axes[0].elems[0], axes[0].elems[1]);
-    printf("  <%8.4f, %8.4f>\n", axes[1].elems[0], axes[1].elems[1]);
-    
-    double *lambdas = NULL;
-    compute_lambdas(pts, 4, axes, &lambdas);
-    printf("EIGEN VALUES:\n");
-    for (int i = 0; i < 2; i++) {
-        printf("  %8.4f\n", lambdas[i]);
-    }
-
-    for (int i = 0; i < 2; i++) {
-        dvec_free(&axes[i]);
-    }
-    dvec_free(&pts[0]);
-    dvec_free(&pts[1]);
-    dvec_free(&pts[2]);
-    dvec_free(&pts[3]);
-    dmat_free(&cov);
+  for (int i = 0; i < 2; i++) {
+    dvec_free(&axes[i]);
+  }
+  dvec_free(&pts[0]);
+  dvec_free(&pts[1]);
+  dvec_free(&pts[2]);
+  dvec_free(&pts[3]);
+  dmat_free(&cov);
 }
 
 int main(/*int argc, char* argv[]*/) {

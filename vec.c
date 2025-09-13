@@ -167,3 +167,32 @@ void dmat_transf(const dmat_t* mat, dvec_t* r) {
   }
   free(result);
 }
+
+void dmat_transp(const dmat_t* mat, dmat_t* tmat) {
+  if (!mat || !tmat)
+    return;
+  if (tmat->m != mat->n || tmat->n != mat->m) {
+    dmat_free(tmat);
+    dmat_init(tmat, mat->n, mat->m, 0.0);
+  }
+  for (int i = 0; i < mat->m; ++i) {
+    for (int j = 0; j < mat->n; ++j) {
+      tmat->elems[j * tmat->n + i] = mat->elems[i * mat->n + j];
+    }
+  }
+}
+
+void dmat_mul(const dmat_t* mat1, const dmat_t* mat2, dmat_t* mat) {
+  if (!mat1 || !mat2 || mat1->n != mat2->m || !mat)
+    return;
+
+  dmat_free(mat);
+  dmat_init(mat, mat1->m, mat2->n, 0.0);
+  for (int i = 0; i < mat1->m; ++i) {
+    for (int j = 0; j < mat2->n; ++j) {
+      for (int k = 0; k < mat1->n; ++k) {
+        mat->elems[i * mat->n + j] += mat1->elems[i * mat1->n + k] * mat2->elems[k * mat2->n + j];
+      }
+    }
+  }
+}
